@@ -939,7 +939,7 @@ void TextWindow::EditControlDone(std::string s) {
         case Edit::STEP_DIM_FINISH:
             if(Expr *e = Expr::From(s, /*popUpError=*/true)) {
                 if(stepDim.isDistance) {
-                    stepDim.finish = SS.ExprToMm(e);
+                    stepDim.finish = SS.NonConstraintExprToMm(e);
                 } else {
                     stepDim.finish = e->Eval();
                 }
@@ -956,7 +956,7 @@ void TextWindow::EditControlDone(std::string s) {
                     Error(_("Radius cannot be zero or negative."));
                     break;
                 }
-                SS.tangentArcRadius = SS.ExprToMm(e);
+                SS.tangentArcRadius = SS.NonConstraintExprToMm(e);
             }
             break;
 
