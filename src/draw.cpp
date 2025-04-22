@@ -69,9 +69,9 @@ void GraphicsWindow::Selection::Draw(bool isHovered, Canvas *canvas) {
         Vector topLeft = camera.UnProjectPoint(topLeftScreen);
 
         auto it = std::unique(refs.begin(), refs.end(),
-                              [](Vector a, Vector b) { return a.Equals(b); });
+                              [](const Vector &a, const Vector &b) { return a.Equals(b); });
         refs.erase(it, refs.end());
-        for(Vector p : refs) {
+        for(const Vector &p : refs) {
             canvas->DrawLine(topLeft, p, hcsEmphasis);
         }
     }

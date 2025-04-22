@@ -1,5 +1,7 @@
 # cmake configuration
-cmake_minimum_required(VERSION 3.9...3.19)
+cmake_minimum_required(VERSION 3.18...3.25)
+
+cmake_policy(SET CMP0094 NEW) # for Python*_FIND_STRATEGY=LOCATION
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR
@@ -43,11 +45,22 @@ project(solvespace
     VERSION 3.1
     LANGUAGES C CXX ASM)
 
+if(EMSCRIPTEN)
+    # Enable optimization. Workaround for "too many locals" error when runs in the browser.
+    if(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "Debug")
+        add_compile_options(-O1)
+    endif()
+
+    set(INCLUDE_NATIVE_COMPONENTS OFF)
+else()
+    set(INCLUDE_NATIVE_COMPONENTS ON)
+endif()
+
 set(ENABLE_GUI        ON CACHE BOOL
     "Whether the graphical interface is enabled")
-set(ENABLE_CLI        ON CACHE BOOL
+set(ENABLE_CLI        ${INCLUDE_NATIVE_COMPONENTS} CACHE BOOL
     "Whether the command line interface is enabled")
-set(ENABLE_TESTS      ON  CACHE BOOL
+set(ENABLE_TESTS      ${INCLUDE_NATIVE_COMPONENTS} CACHE BOOL
     "Whether the test suite will be built and run")
 set(ENABLE_COVERAGE   OFF CACHE BOOL
     "Whether code coverage information will be collected")
@@ -124,7 +137,7 @@ if(ENABLE_OPENMP)
         target_compile_options(slvs_openmp INTERFACE ${OpenMP_CXX_FLAGS})
         target_link_libraries(slvs_openmp INTERFACE
             ${OpenMP_CXX_LIBRARIES})
-        target_include_directories(slvs_openmp INTERFACE SYSTEM
+        target_include_directories(slvs_openmp SYSTEM INTERFACE
             ${OpenMP_CXX_INCLUDE_DIRS})
         message(STATUS "found OpenMP, compiling with flags: " ${OpenMP_CXX_FLAGS} )
     endif()
@@ -183,15 +196,13 @@ endif()
 # common dependencies
 
 if(APPLE)
-    set(CMAKE_FIND_FRAMEWORK LAST)
+    set(CMAKE_FIND_FRAMEWORK FIRST)
 endif()
 
-if(EMSCRIPTEN)
-    set(M_LIBRARY "" CACHE STRING "libm (not necessary)" FORCE)
+if(ENABLE_GUI OR ENABLE_CLI)
+    message(STATUS "Using in-tree libdxfrw")
+    add_subdirectory(extlib/libdxfrw)
 endif()
-
-message(STATUS "Using in-tree libdxfrw")
-add_subdirectory(extlib/libdxfrw)
 
 message(STATUS "Using in-tree mimalloc")
 set(MI_OVERRIDE OFF CACHE BOOL "")
@@ -216,68 +227,92 @@ if(NOT EXISTS "${EIGEN3_INCLUDE_DIRS}")
 endif()
 
 
-if(WIN32 OR APPLE OR EMSCRIPTEN)
-    # On Win32 and macOS we use vendored packages, since there is little to no benefit
-    # to trying to find system versions. In particular, trying to link to libraries from
-    # Homebrew or macOS system libraries into the .app file is highly likely to result
-    # in incompatibilities after upgrades.
+if(ENABLE_GUI OR ENABLE_CLI)
+    if(WIN32 OR APPLE OR EMSCRIPTEN)
+        # On Win32 and macOS we use vendored packages, since there is little to no benefit
+        # to trying to find system versions. In particular, trying to link to libraries from
+        # Homebrew or macOS system libraries into the .app file is highly likely to result
+        # in incompatibilities after upgrades.
 
-    include(FindVendoredPackage)
-    include(AddVendoredSubdirectory)
+        include(FindVendoredPackage)
+        include(AddVendoredSubdirectory)
 
-    set(FORCE_VENDORED_ZLIB     ON)
-    set(FORCE_VENDORED_PNG      ON)
-    set(FORCE_VENDORED_Freetype ON)
+        set(FORCE_VENDORED_ZLIB     ON)
+        set(FORCE_VENDORED_PNG      ON)
+        set(FORCE_VENDORED_Freetype ON)
 
-    find_vendored_package(ZLIB zlib
-        ZLIB_LIBRARY            zlibstatic
-        ZLIB_INCLUDE_DIR        ${CMAKE_SOURCE_DIR}/extlib/zlib)
-    list(APPEND ZLIB_INCLUDE_DIR ${CMAKE_BINARY_DIR}/extlib/zlib)
+        # There's an issue with the zlib configuration, which doesn't provide a way to
+        # disable the shared or static library builds, and on UNIX sets the base name of
+        # the output for both the static and shared targets to `libz`. As Emscripten doesn't
+        # support shared libraries, CMake converts the shared library target to a static
+        # library and both targets end up with the name `libz.a`, causing Ninja to complain
+        # about different rules generating the same target. As a workaround, temporarily
+        # unset UNIX for Emscripten while the zlib configuration is being processed, and
+        # reset it back afterwards.
+        # NOTE: The unreleased develop branch of zlib after version 1.3.1 allows disabling
+        # the shared library build, which is the proper fix for this issue, so when the
+        # next version of zlib is released and updated as a dependency, `ZLIB_BUILD_SHARED`
+        # should be set to `OFF` instead of this hack.
+        if(EMSCRIPTEN AND UNIX)
+            set(zlib_workaround_unix_was_unset 1)
+            unset(UNIX)
+        endif()
 
-    find_vendored_package(PNG libpng
-        SKIP_INSTALL_ALL        ON
-        PNG_LIBRARY             png_static
-        PNG_ARM_NEON            "off"
-        PNG_SHARED              OFF
-        PNG_STATIC              ON
-        PNG_EXECUTABLES         OFF
-        PNG_TESTS               OFF
-        PNG_FRAMEWORK           OFF
-        PNG_PNG_INCLUDE_DIR     ${CMAKE_SOURCE_DIR}/extlib/libpng)
-    list(APPEND PNG_PNG_INCLUDE_DIR ${CMAKE_BINARY_DIR}/extlib/libpng)
+        find_vendored_package(ZLIB zlib
+            ZLIB_LIBRARY            zlibstatic
+            ZLIB_INCLUDE_DIR        ${CMAKE_SOURCE_DIR}/extlib/zlib)
+        list(APPEND ZLIB_INCLUDE_DIR ${CMAKE_BINARY_DIR}/extlib/zlib)
 
-    find_vendored_package(Freetype freetype
-        WITH_ZLIB               OFF
-        WITH_BZip2              OFF
-        WITH_PNG                OFF
-        WITH_HarfBuzz           OFF
-        FREETYPE_LIBRARY        freetype
-        FREETYPE_INCLUDE_DIRS   ${CMAKE_SOURCE_DIR}/extlib/freetype/include)
+        if(zlib_workaround_unix_was_unset)
+            set(UNIX 1)
+            unset(zlib_workaround_unix_was_unset)
+        endif()
 
-    message(STATUS "Using in-tree pixman")
-    set(PIXMAN_FOUND            YES)
-    set(PIXMAN_LIBRARY          pixman)
-    set(PIXMAN_BUILD_TESTS      OFF CACHE BOOL "")
-    set(PIXMAN_BUILD_DEMOS      OFF CACHE BOOL "")
+        find_vendored_package(PNG libpng
+            SKIP_INSTALL_ALL        ON
+            PNG_LIBRARY             png_static
+            PNG_ARM_NEON            "off"
+            PNG_SHARED              OFF
+            PNG_STATIC              ON
+            PNG_EXECUTABLES         OFF
+            PNG_TESTS               OFF
+            PNG_FRAMEWORK           OFF
+            PNG_PNG_INCLUDE_DIR     ${CMAKE_SOURCE_DIR}/extlib/libpng)
+        list(APPEND PNG_PNG_INCLUDE_DIR ${CMAKE_BINARY_DIR}/extlib/libpng)
 
-    set(PIXMAN_INCLUDE_DIRS     ${CMAKE_SOURCE_DIR}/extlib/pixman/pixman)
-    list(APPEND PIXMAN_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/extlib/pixman/pixman)
-    add_vendored_subdirectory(extlib/pixman)
+        find_vendored_package(Freetype freetype
+            FT_DISABLE_BZIP2        ON
+            FT_DISABLE_HARFBUZZ     ON
+            FT_DISABLE_BROTLI       ON
+            FT_DISABLE_PNG          ON
+            FREETYPE_LIBRARY        freetype
+            FREETYPE_INCLUDE_DIRS   ${CMAKE_SOURCE_DIR}/extlib/freetype/include)
 
-    message(STATUS "Using in-tree cairo")
-    add_vendored_subdirectory(extlib/cairo)
-    set(CAIRO_FOUND             YES)
-    set(CAIRO_LIBRARIES         cairo)
-    set(CAIRO_INCLUDE_DIRS      ${CMAKE_SOURCE_DIR}/extlib/cairo/src)
-    list(APPEND CAIRO_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/extlib/cairo/src)
-else()
-    # On Linux and BSDs we're a good citizen and link to system libraries.
-    find_package(Backtrace)
-    find_package(PkgConfig REQUIRED)
-    find_package(ZLIB REQUIRED)
-    find_package(PNG REQUIRED)
-    find_package(Freetype REQUIRED)
-    find_package(Cairo REQUIRED)
+        message(STATUS "Using in-tree pixman")
+        set(PIXMAN_FOUND            YES)
+        set(PIXMAN_LIBRARY          pixman)
+        set(PIXMAN_BUILD_TESTS      OFF CACHE BOOL "")
+        set(PIXMAN_BUILD_DEMOS      OFF CACHE BOOL "")
+
+        set(PIXMAN_INCLUDE_DIRS     ${CMAKE_SOURCE_DIR}/extlib/pixman/pixman)
+        list(APPEND PIXMAN_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/extlib/pixman/pixman)
+        add_vendored_subdirectory(extlib/pixman)
+
+        message(STATUS "Using in-tree cairo")
+        add_vendored_subdirectory(extlib/cairo)
+        set(CAIRO_FOUND             YES)
+        set(CAIRO_LIBRARIES         cairo)
+        set(CAIRO_INCLUDE_DIRS      ${CMAKE_SOURCE_DIR}/extlib/cairo/src)
+        list(APPEND CAIRO_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/extlib/cairo/src)
+    else()
+        # On Linux and BSDs we're a good citizen and link to system libraries.
+        find_package(Backtrace)
+        find_package(PkgConfig REQUIRED)
+        find_package(ZLIB REQUIRED)
+        find_package(PNG REQUIRED)
+        find_package(Freetype REQUIRED)
+        find_package(Cairo REQUIRED)
+    endif()
 endif()
 
 # GUI dependencies
@@ -431,15 +466,16 @@ if(ENABLE_COVERAGE)
 endif()
 
 # application components
-
-add_subdirectory(res)
+if(ENABLE_GUI OR ENABLE_CLI)
+    add_subdirectory(res)
+    add_subdirectory(exposed)
+endif()
 add_subdirectory(src)
-add_subdirectory(exposed)
 if(ENABLE_TESTS)
     add_subdirectory(test)
 endif()
-if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+if((ENABLE_CLI OR ENABLE_GUI) AND (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo"))
     add_subdirectory(bench)
 else()
-    message(STATUS "Benchmarking disabled in debug builds.")
+    message(STATUS "Benchmarking disabled in debug and library builds.")
 endif()

@@ -467,6 +467,8 @@ public:
                    Gdk::BUTTON_RELEASE_MASK |
                    Gdk::BUTTON_MOTION_MASK |
                    Gdk::SCROLL_MASK |
+                   Gdk::SMOOTH_SCROLL_MASK |
+                   Gdk::TOUCHPAD_GESTURE_MASK |
                    Gdk::LEAVE_NOTIFY_MASK |
                    Gdk::KEY_PRESS_MASK |
                    Gdk::KEY_RELEASE_MASK);
@@ -569,17 +571,22 @@ protected:
     bool on_scroll_event(GdkEventScroll *gdk_event) override {
         double dx, dy;
         GdkScrollDirection dir;
+        double delta;
+
 // for gtk4 ??
 //        gdk_scroll_event_get_deltas((GdkEvent*)gdk_event, &dx, &dy);
 //        gdk_scroll_event_get_direction((GdkEvent*)gdk_event, &dir);
-        gdk_event_get_scroll_direction((GdkEvent*)gdk_event, &dir);
-        gdk_event_get_scroll_deltas((GdkEvent*)gdk_event, &dx, &dy);
-        
-        double delta;
-        if(dy < 0 || dir == GDK_SCROLL_UP) {
-            delta = 1;
-        } else if(dy > 0 || dir == GDK_SCROLL_DOWN) {
-            delta = -1;
+
+        if(gdk_event_get_scroll_deltas((GdkEvent*)gdk_event, &dx, &dy)) {
+            delta = -dy;
+        } else if(gdk_event_get_scroll_direction((GdkEvent*)gdk_event, &dir)) {
+            if(dir == GDK_SCROLL_UP) {
+                delta = 1;
+            } else if(dir == GDK_SCROLL_DOWN) {
+                delta = -1;
+            } else {
+                return false;
+            }
         } else {
             return false;
         }

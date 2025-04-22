@@ -85,7 +85,7 @@ elseif(APPLE)
             VERBATIM)
     endfunction()
 elseif(EMSCRIPTEN)
-    set(resource_dir ${CMAKE_BINARY_DIR}/src/res)
+    set(resource_dir ${CMAKE_BINARY_DIR}/res)
 
     function(add_resource name)
         set(source ${CMAKE_CURRENT_SOURCE_DIR}/${name})
