@@ -9,6 +9,8 @@
 
 #include <string>
 #include <vector>
+// #include "kernals/kernal_base.h"
+#include "kernals/kernal_solvespace.h"
 
 namespace SolveSpace {
 namespace Platform {
@@ -80,6 +82,7 @@ std::vector<std::string> InitCli(int argc, char **argv);
 // Temporary arena functions.
 void *AllocTemporary(size_t size);
 void FreeAllTemporary();
+Kernal getKernal();
 
 } // namespace Platform
 } // namespace SolveSpace

@@ -85,6 +85,10 @@ std::wstring Widen(const std::string &in)
 
 #endif
 
+Kernal getKernal() {
+    return SolvespaceKernal();
+}
+
 //-----------------------------------------------------------------------------
 // Path utility functions.
 //-----------------------------------------------------------------------------

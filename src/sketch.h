@@ -21,6 +21,7 @@
 #include "platform/gui.h"
 #include "srf/surface.h"
 #include "render/render.h"
+// #include "kernals/kernal_base.h"
 
 namespace SolveSpace {
 
@@ -257,8 +258,10 @@ public:
 
     bool            booleanFailed;
 
-    SShell          thisShell;
-    SShell          runningShell;
+    SShell          thisShell; // legacy version
+    KernalShape    *thisKernalShell;
+    SShell          runningShell; // legacy version
+    KernalShape    *runningKernalShell;
 
     SMesh           thisMesh;
     SMesh           runningMesh;

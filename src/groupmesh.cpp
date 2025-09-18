@@ -6,6 +6,7 @@
 // Copyright 2008-2013 Jonathan Westhues.
 //-----------------------------------------------------------------------------
 #include "solvespace.h"
+#include <iostream>
 
 namespace SolveSpace {
 
@@ -220,6 +221,28 @@ void Group::GenerateShellAndMesh() {
     runningShell.Clear();
     runningMesh.Clear();
 
+        std::cout << "kernal type: " << ((int) Platform::getKernal().getType()) << "\n";
+        std::cout << "kernal type: " << ((int) Platform::getKernal().getType()) << "\n";
+        std::cout << "kernal type: " << ((int) Platform::getKernal().getType()) << "\n";
+        std::cout << "kernal type: " << ((int) Platform::getKernal().getType()) << "\n";
+        std::cout << "kernal type: " << ((int) Platform::getKernal().getType()) << "\n";
+
+
+    if ((thisKernalShell == nullptr)) {
+        // std::cout << "set\n";
+        Platform::getKernal().makeShape();
+        std::cout << "kernal type: " << ((int) Platform::getKernal().getType()) << "\n";
+        thisKernalShell = Platform::getKernal().makeShape();
+    } else {
+        std::cout << "clear\n\n";
+        // thisKernalShell->clear();
+    }
+
+    if (runningKernalShell == nullptr) {
+        // runningKernalShell = Platform::program_kernal.makeShape();
+        // runningKernalShell->clear();
+    }
+
     // Don't attempt a lathe or extrusion unless the source section is good:
     // planar and not self-intersecting.
     bool haveSrc = true;
@@ -261,7 +284,11 @@ void Group::GenerateShellAndMesh() {
         for(sbls = sblss->l.First(); sbls; sbls = sblss->l.NextAfter(sbls)) {
             int is = thisShell.surface.n;
             // Extrude this outer contour (plus its inner contours, if present)
-            thisShell.MakeFromExtrusionOf(sbls, tbot, ttop, color);
+            thisShell.MakeFromExtrusionOf(sbls, tbot, ttop, color); // todo: use kernal interface
+            // KernalShape *extrudeWire = Platform::program_kernal.makeShape();
+            // extrudeWire->addSet(sbls);
+
+            // Platform::program_kernal.createExtrusion(thisKernalShell, extrudeWire, tbot, ttop, color);
 
             // And for any plane faces, annotate the model with the entity for
             // that face, so that the user can select them with the mouse.

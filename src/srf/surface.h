@@ -7,6 +7,8 @@
 // Copyright 2008-2013 Jonathan Westhues.
 //-----------------------------------------------------------------------------
 
+// why is this all in one file?
+
 #ifndef SOLVESPACE_SURFACE_H
 #define SOLVESPACE_SURFACE_H
 
