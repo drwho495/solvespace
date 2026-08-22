@@ -96,7 +96,7 @@ const SolveSpaceUI::SaveTable SolveSpaceUI::SAVED[] = {
     { 'g',  "Group.opB.v",              'x',    &(SS.sv.g.opB.v)              },
     { 'g',  "Group.valA",               'f',    &(SS.sv.g.valA)               },
     { 'g',  "Group.valB",               'f',    &(SS.sv.g.valB)               },
-    { 'g',  "Group.valC",               'f',    &(SS.sv.g.valB)               },
+    { 'g',  "Group.valC",               'f',    &(SS.sv.g.valC)               },
     { 'g',  "Group.color",              'c',    &(SS.sv.g.color)              },
     { 'g',  "Group.subtype",            'd',    &(SS.sv.g.subtype)            },
     { 'g',  "Group.skipFirst",          'b',    &(SS.sv.g.skipFirst)          },
@@ -1016,7 +1016,10 @@ bool SolveSpaceUI::ReloadLinkedImage(const Platform::Path &saveFile,
             if(pixmap == NULL) {
                 Error("The image '%s' is corrupted.", filename->raw.c_str());
             }
-            // We know where the file is now, good.
+            // We know where the file is now, good. The updated path must be
+            // written back to the .slvs file, so mark the document unsaved
+            // (issue #1238).
+            SS.unsaved = true;
         } else if(canCancel) {
             return false;
         }

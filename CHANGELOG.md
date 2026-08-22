@@ -1,6 +1,21 @@
 Changelog
 =========
 
+3.3 - release date TBD
+---
+Geometric Modelling Kernel (NURBS)
+
+Thanks to Claude Fable 5
+* Numerous bug fixes relating to flat surfaces and edges.
+* Some bugs relating to curved surfaces fixed.
+* Fixes when edges intersect tangent on the edge of a surface.
+* Significant reduction in red lines, naked edges, and missing surfaces.
+
+Misc:
+* Initialize the color picker to the current color instead of black.
+* Fix some file dialog issues.
+* small fixes in the web version
+
 3.2
 ---
 
@@ -42,6 +57,7 @@ Other User interface changes:
 * `CTRL+Tab` hides/shows the toolbar.
 * Marquee selection of line segments is now precise.
 * Speed up the animation when moving the view, for example when pressing `F2` or `F3`.
+* The animation speed when changing the 3D view is configurable.
 * Pressing ESC while drawing a sketch entity now deletes the entity rather than completing it.
 * `CTRL+Shift+S` shortcut for "Save As..."
 * New option "use camera mouse navigation" for camera (instead of the default model) rotation navigation.
@@ -55,13 +71,17 @@ Other User interface changes:
 	* improved "є"
 	* added superscript 5 "⁵"
 	* fixed crash when typing "£"
-* The animation speed when changing the 3D view is configurable.
 * Add an 'only unconstrained' option on the Property Browser home screen that shows only unconstrained groups.
+* Some faces can be gragged. Linked objects can be moved by gragging their faces.
 
+Solver
+
+* Merged Python bindings for the geometric constraint solver to master.
 
 Other
 
-* STEP files export as solid model(s).
+* STEP files now export as solid model(s).
+* Merged a QT front end as an option for Linux builds.
 * Merged and improved the experimental Web version (Emscripten port).
 * Better Flatpack support.
 * Several bug fixes and usability improvements.
@@ -76,6 +96,12 @@ Bug fixes:
 * Mac: Don't crash on file ops without changing dir.
 * Fix incorrect arc handling when linking IDF files.
 * Windows: avoid (sometimes) showing multiple messages when deleting an entity causes other entities to be removed.
+* "Split Curves at Intersection" fixes:
+	* Does not create a zero length edge when splitting lines intersecting in a T shape
+	* Does not create an invisible zero length edge and jump the intersection point to (0, 0, 0) when splitting lines with coincident end points.
+* Fix IDF import with THOU units.
+* macOS: Fix some points not draggable on macOS 26 (Tahoe).
+* Windows 10/11: Fix the button click area in the property browser shifting because the contents were rendered stretched or compressed.
 
 3.1
 ---

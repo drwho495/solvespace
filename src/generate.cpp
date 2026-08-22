@@ -33,6 +33,7 @@ void SolveSpaceUI::MarkGroupDirty(hGroup hg, bool onlyThis) {
 
 bool SolveSpaceUI::PruneOrphans() {
     const int requests = SK.request.n;
+    SK.request.ClearTags();
     for(Request &r : SK.request) {
         if(!GroupExists(r.group))
             r.tag = 1;
@@ -41,6 +42,7 @@ bool SolveSpaceUI::PruneOrphans() {
     deleted.requests += requests - SK.request.n;
 
     const int constraints = SK.constraint.n;
+    SK.constraint.ClearTags();
     for(Constraint &c : SK.constraint) {
         if(!GroupExists(c.group))
             c.tag = 1;
@@ -106,6 +108,7 @@ bool SolveSpaceUI::PruneRequestsAndConstraints(hGroup hg) {
     };
 
     const int requests = SK.request.n;
+    SK.request.ClearTags();
     for(Request &r : SK.request) {
         if(r.group != hg) {
             continue;
@@ -121,6 +124,7 @@ bool SolveSpaceUI::PruneRequestsAndConstraints(hGroup hg) {
     deleted.requests += requests - SK.request.n;
 
     const int constraints = SK.constraint.n;
+    SK.constraint.ClearTags();
     for(Constraint &c : SK.constraint) {
         if(c.group != hg)
             continue;
@@ -421,7 +425,7 @@ void SolveSpaceUI::ForceReferences() {
         Entity *wrkpl = SK.GetEntity(hr.entity(0));
         // The origin for our coordinate system, always zero
         Entity *origin = SK.GetEntity(wrkpl->point[0]);
-        origin->PointForceTo(Vector::From(0, 0, 0));
+        origin->PointForceTo({0, 0, 0});
         origin->construction = true;
         SK.GetParam(origin->param[0])->known = true;
         SK.GetParam(origin->param[1])->known = true;

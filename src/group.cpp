@@ -20,6 +20,7 @@ const hGroup Group::HGROUP_REFERENCES = { 1 };
 // memory. This clears and frees them all.
 //-----------------------------------------------------------------------------
 void Group::Clear() {
+    solved.remove.Clear();
     polyLoops.Clear();
     bezierLoops.Clear();
     bezierOpens.Clear();
@@ -899,6 +900,8 @@ void Group::MakeExtrusionLines(EntityList *el, hEntity in) {
         en.param[1] = h.param(1);
         en.param[2] = h.param(2);
         en.numPoint = a;
+        // we need a point somewhere on the face, and it must be from the current group.
+        en.point[0] = Remap(ep->point[0], REMAP_TOP);
         en.numNormal = Quaternion::From(0, ab.x, ab.y, ab.z);
 
         en.group = h;
@@ -983,7 +986,7 @@ void Group::MakeLatheSurfacesSelectable(EntityList *el, hEntity in, Vector axis)
             en.style = ep->style;
             en.h = Remap(ep->h, REMAP_LINE_TO_FACE);
             en.type = Entity::Type::FACE_NORMAL_PT;
-            en.point[0] = ep->point[0];
+            en.point[0] = Remap(ep->point[0], REMAP_LATHE_START);
             el->Add(&en);
         }
     }
@@ -1000,7 +1003,7 @@ void Group::MakeRevolveEndFaces(EntityList *el, hEntity pt, int ai, int af)
 
     // When there is no loop normal (e.g. if the loop is broken), use normal of workplane
     // as fallback, to avoid breaking constraints depending on the faces.
-    if(n.Equals(Vector::From(0.0, 0.0, 0.0)) && src->type == Group::Type::DRAWING_WORKPLANE) {
+    if(n.Equals({0, 0, 0}) && src->type == Group::Type::DRAWING_WORKPLANE) {
         n = SK.GetEntity(src->h.entity(0))->Normal()->NormalN();
     }
 
@@ -1037,7 +1040,7 @@ void Group::MakeExtrusionTopBottomFaces(EntityList *el, hEntity pt)
 
     // When there is no loop normal (e.g. if the loop is broken), use normal of workplane
     // as fallback, to avoid breaking constraints depending on the faces.
-    if(n.Equals(Vector::From(0.0, 0.0, 0.0)) && src->type == Group::Type::DRAWING_WORKPLANE) {
+    if(n.Equals({0, 0, 0}) && src->type == Group::Type::DRAWING_WORKPLANE) {
         n = SK.GetEntity(src->h.entity(0))->Normal()->NormalN();
     }
 
@@ -1184,6 +1187,10 @@ void Group::CopyEntity(EntityList *el,
             }
             en.numPoint  = (ep->actPoint).ScaledBy(scale);
             en.numNormal = (ep->actNormal).ScaledBy(scale);
+            // the new face needs an associated point (old files may not have one)
+            if(ep->point[0].v != 0) {
+                en.point[0] = Remap(ep->point[0], remap);
+            }
             break;
 
         default: {

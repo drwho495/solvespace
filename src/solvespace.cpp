@@ -200,8 +200,12 @@ bool SolveSpaceUI::Load(const Platform::Path &filename) {
         saveFile.Clear();
         NewFile();
     }
+    // Capture whether loading modified the document (e.g. the user relocated
+    // a missing image, which sets unsaved in ReloadLinkedImage) before
+    // AfterNewFile() resets it (issue #1238).
+    bool unsavedDuringLoad = unsaved;
     AfterNewFile();
-    unsaved = autosaveLoaded;
+    unsaved = autosaveLoaded || unsavedDuringLoad;
     return fileLoaded;
 }
 
@@ -539,9 +543,9 @@ void SolveSpaceUI::AfterNewFile() {
     // GenerateAll() expects the view to be valid, because it uses that to
     // fill in default values for extrusion depths etc. (which won't matter
     // here, but just don't let it work on garbage)
-    SS.GW.offset    = Vector::From(0, 0, 0);
-    SS.GW.projRight = Vector::From(1, 0, 0);
-    SS.GW.projUp    = Vector::From(0, 1, 0);
+    SS.GW.offset    = {0, 0, 0};
+    SS.GW.projRight = {1, 0, 0};
+    SS.GW.projUp    = {0, 1, 0};
 
     GenerateAll(Generate::ALL);
 
@@ -1117,7 +1121,7 @@ void SolveSpaceUI::MenuHelp(Command id) {
 "law. For details, visit http://gnu.org/licenses/\n"
 "\n"
 "© 2008-%d Jonathan Westhues and other authors.\n"),
-PACKAGE_VERSION, 2025);
+PACKAGE_VERSION, 2026);
             break;
 
         case Command::GITHUB:
